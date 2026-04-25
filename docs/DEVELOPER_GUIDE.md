@@ -7,13 +7,13 @@ This guide provides the necessary steps to develop, test, and deploy the Post-Qu
 ### Dependencies
 - **Go 1.23+**
 - **Docker** (Required for database and OpenBao adapters)
-- **Redis 7+** (Required for rate limiting)
+- **Redis 7+** or **Valkey 8+** (Required for rate limiting)
 
 ### Quick Start (Dev Mode)
 1. Initialize infrastructure:
    ```bash
    docker run --name oidc-db -e POSTGRES_PASSWORD=password -p 5432:5432 -d postgres:15-alpine
-   docker run --name oidc-redis -p 6379:6379 -d redis:7-alpine
+   docker run --name oidc-valkey -p 6379:6379 -d valkey/valkey:8-alpine
    docker run --name openbao -p 8200:8200 -e "BAO_DEV_ROOT_TOKEN_ID=root" -d openbao/openbao
    ```
 2. Run the server:

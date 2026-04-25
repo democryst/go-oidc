@@ -14,7 +14,7 @@ The project follows a **Hexagonal Architecture** (Ports & Adapters) to decouple 
 - **Adapters**:
     - **Performance Repository (`internal/repository/postgres`)**: Multi-modal DB adapter supporting synchronous queries and asynchronous **Batch Logging** for high-throughput audit trails.
     - **OpenBao (`internal/crypto/signer`)**: KMS-backed signing and encryption.
-    - **Global Cache (`internal/api/middleware`)**: Redis-backed distributed rate limiting.
+    - **Global Cache (`internal/api/middleware`)**: Valkey (or Redis) backed distributed rate limiting.
     - **API (`internal/api/handlers`)**: HTTP entry points including OIDC, Admin UI, and Health Probes.
 
 ## 3. Cryptographic Design
@@ -34,7 +34,7 @@ As many KMS systems do not yet natively support Dilithium3:
 ## 4. High-Scale Engineering (1M TPS Strategy)
 
 ### 4.1. Distributed Rate Limiting
-Utilizes a **Redis-backed middleware** with atomic Lua scripts. This allows the provider to throttle clients globally across multiple Kubernetes pods with sub-millisecond overhead.
+Utilizes a **Valkey (or Redis) backed middleware** with atomic Lua scripts. This allows the provider to throttle clients globally across multiple Kubernetes pods with sub-millisecond overhead.
 
 ### 4.2. Asynchronous Audit Pipeline
 Under high load (1M TPS), synchronous I/O to PostgreSQL is a bottleneck. We implement an **Asynchronous Batch Repository**:
