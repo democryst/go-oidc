@@ -123,6 +123,11 @@ func main() {
 	// Admin API
 	mux.Handle("/admin/", protectedAdmin)
 
+	// Health Probes
+	healthHandler := handlers.NewHealthHandler()
+	mux.HandleFunc("/live", healthHandler.Liveness)
+	mux.HandleFunc("/ready", healthHandler.Readiness)
+
 	// Static UI
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
