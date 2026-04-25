@@ -19,6 +19,7 @@ For architecture and security, they give **advice**. For implementation and fixi
 | 🎨 UI | `gemma-ui:latest` | Frontend, UX, API ergonomics, accessibility |
 | 🔍 Fix | `gemma-fix:latest` | Debugging, root cause analysis, performance |
 | 🛡️ Sec | `gemma-sec:latest` | Security, threat modelling, auth, secrets, compliance |
+| 🚀 DevOps | `gemma-devops:latest` | Kubernetes, CI/CD, IaC, Scaling, Deployment plans |
 | 🧠 Base | `gemma-base:latest` | General reasoning, cross-cutting questions, fallback |
 
 **Consult format (Advisory) — send this to Arch/Sec/UI:**
@@ -158,12 +159,14 @@ INSTRUCTION: [Exactly what code should be written. Enforce TDD if applicable. Ou
 **Entry:** All tests and quality checks pass.
 
 **Antigravity actions:**
+- Antigravity explicitly delegates the **Deployment Plan** to the **DevOps** agent via Ollama.
 - Verify the build is clean (`build` command for the project's stack).
 - Confirm no environment-specific config is hardcoded.
 - Confirm migrations (if any) are backward-compatible or have a rollback path.
 - Produce a walkthrough in the project directory at `.antigravity/walkthrough.md` covering: what was built, how it was tested, how to verify it.
 
 **Agent consultations:**
+- **DevOps** — Infrastructure as Code (IaC), zero-downtime strategy, environment variables.
 - **Arch** — Is the deployment strategy consistent with the system design?
 - **Sec** — Final check: secrets, environment variables, exposed ports, TLS.
 
@@ -193,6 +196,7 @@ INSTRUCTION: [Exactly what code should be written. Enforce TDD if applicable. Ou
 | Large refactor | Dev + Arch |
 | Failing test, unclear cause | Fix |
 | New API endpoint design | Arch + Dev + Sec |
+| Deployment & Scaling | DevOps + Arch + Sec |
 
 ---
 
