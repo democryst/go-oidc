@@ -53,3 +53,9 @@
 - [x] `k8s/network-policy.yaml` — Egress isolation
 - [x] `k8s/hpa.yaml` — RPS-based autoscaling manifest
 - [x] `k8s/service.yaml` — ClusterIP and Ingress
+
+# Phase 5: Valkey Migration [COMPLETED]
+- [x] Replace Redis with Valkey in local stack (docker-compose)
+- [x] Update documentation (ARCHITECTURE.md, DEVELOPER_GUIDE.md)
+- [x] Verify LUA script compatibility for rate limiting
+- [x] Create P4 Requirements for Valkey migration

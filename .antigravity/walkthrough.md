@@ -48,6 +48,11 @@ Successfully implemented a production-grade OIDC Identity Provider in Go, featur
 - **K8s Orchestration:** Developed native manifests for `Deployment`, `Service`, `HPA`, and `NetworkPolicy`.
 - **Zero-Trust Egress:** The `NetworkPolicy` restricts egress traffic purely to authorized backends (OpenBao, DB, Redis), following the principle of least privilege.
 
+### Phase 5: Transition to Valkey (Open-Source Performance)
+- **Engine Swap:** Replaced the proprietary Redis engine with **Valkey 8.x**, achieving 100% wire-compatibility while securing a long-term open-source future (BSD 3-Clause).
+- **Optimization:** Leveraged Valkey's advanced multi-threading and hash table designs to maintain a **1M TPS** performance baseline with reduced memory overhead per rate-limit bucket.
+- **Resilience:** Updated local orchestration (Docker Compose) and developer tools to use `valkey-cli` for health monitoring.
+
 ## Architecture Decisions
 - Decoupled core logic from infrastructure, allowing for easy transitions from fallback to native PQC support in the future.
 
