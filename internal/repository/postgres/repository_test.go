@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,6 +21,11 @@ import (
 )
 
 func setupTestDB(t *testing.T) (interfaces.Repository, *pgxpool.Pool, context.Context) {
+	// Skip if Docker is not available in the environment
+	if os.Getenv("DOCKER_HOST") == "" && os.Getenv("CI") != "" {
+		t.Skip("Skipping integration test: Docker not found")
+	}
+
 	ctx := context.Background()
 
 	// Locate migrations directory (tests run in their own folder, so we map upwards)
@@ -28,7 +34,7 @@ func setupTestDB(t *testing.T) (interfaces.Repository, *pgxpool.Pool, context.Co
 	migrationFile := filepath.Join(wd, "../../../migrations/001_initial_schema.up.sql")
 
 	postgresContainer, err := postgres.Run(ctx,
-		testcontainers.WithImage("postgres:15-alpine"),
+		"postgres:15-alpine",
 		postgres.WithInitScripts(migrationFile),
 		postgres.WithDatabase("testdb"),
 		postgres.WithUsername("testuser"),
@@ -37,7 +43,12 @@ func setupTestDB(t *testing.T) (interfaces.Repository, *pgxpool.Pool, context.Co
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).WithStartupTimeout(5*time.Second)),
 	)
-	require.NoError(t, err)
+	if err != nil {
+		if strings.Contains(err.Error(), "failed to create Docker provider") || strings.Contains(err.Error(), "Docker not found") {
+			t.Skipf("Skipping integration test: %v", err)
+		}
+		require.NoError(t, err)
+	}
 
 	t.Cleanup(func() {
 		if err := postgresContainer.Terminate(ctx); err != nil {
