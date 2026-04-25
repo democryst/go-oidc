@@ -1,4 +1,4 @@
-.PHONY: build test docker-build up down verify clean help
+.PHONY: build test docker-build up down verify scan install-tools clean help
 
 # Variables
 BINARY_NAME=oidc-server
@@ -27,8 +27,23 @@ down: ## Stop local environment
 	@echo "Stopping local environment..."
 	docker-compose down
 
-verify: build test ## Verify build and run tests
-	@echo "Verification complete."
+install-tools: ## Install security scanning tools
+	@echo "Installing tools..."
+	go install github.com/securego/gosec/v2/cmd/gosec@latest
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	go install honnef.co/go/tools/cmd/staticcheck@latest
+
+scan: ## Run all security and quality scans
+	@echo "Running security scans..."
+	@echo "--- GOSEC ---"
+	gosec -quiet ./...
+	@echo "--- GOVULNCHECK ---"
+	govulncheck ./...
+	@echo "--- STATICCHECK ---"
+	staticcheck ./...
+
+verify: build test scan ## Verify build, run tests and security scans
+	@echo "Comprehensive verification complete."
 
 clean: ## Clean build artifacts
 	@echo "Cleaning artifacts..."

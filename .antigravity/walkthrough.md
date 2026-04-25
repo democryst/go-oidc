@@ -53,6 +53,11 @@ Successfully implemented a production-grade OIDC Identity Provider in Go, featur
 - **Optimization:** Leveraged Valkey's advanced multi-threading and hash table designs to maintain a **1M TPS** performance baseline with reduced memory overhead per rate-limit bucket.
 - **Resilience:** Updated local orchestration (Docker Compose) and developer tools to use `valkey-cli` for health monitoring.
 
+### Phase 6: Automated Security Governance
+- **Local Scanner:** Integrated a comprehensive security scanning suite into the `Makefile`. Developers can now execute `make scan` to run **SAST** (`gosec`), **SCA** (`govulncheck`), and **Quality Analysis** (`staticcheck`) simultaneously.
+- **Verification Gate:** Updated the `make verify` target to ensure that no code is considered "verified" unless it passes both functional tests and security scans.
+- **Dependency Guard:** Integrated vulnerability checking into the core workflow, ensuring that known exploits in the Go ecosystem are identified and mitigated before they reach production.
+
 ## Architecture Decisions
 - Decoupled core logic from infrastructure, allowing for easy transitions from fallback to native PQC support in the future.
 

@@ -59,3 +59,9 @@
 - [x] Update documentation (ARCHITECTURE.md, DEVELOPER_GUIDE.md)
 - [x] Verify LUA script compatibility for rate limiting
 - [x] Create P4 Requirements for Valkey migration
+
+# Phase 6: Security Governance [COMPLETED]
+- [x] Create P5 Requirements for Local Security Analysis
+- [x] Integrate `make scan` into Makefile (gosec, govulncheck, staticcheck)
+- [x] Implement `make install-tools` for automated setup
+- [x] Verify `verify` target include security scans
