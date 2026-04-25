@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/url"
 
@@ -63,7 +62,6 @@ func (h *OIDCHandler) HandleToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// OIDC allows client auth via Basic Auth or Post Form
 	clientID, clientSecret, ok := r.BasicAuth()
 	if !ok {
 		clientID = r.PostFormValue("client_id")
@@ -88,25 +86,35 @@ func (h *OIDCHandler) HandleToken(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
-	json.NewEncoder(w).Encode(resp)
+	
+	h.writeJSON(w, http.StatusOK, resp)
 }
 
 func (h *OIDCHandler) HandleDiscovery(w http.ResponseWriter, r *http.Request) {
 	doc := h.svc.Discovery()
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(doc)
+	h.writeJSON(w, http.StatusOK, doc)
 }
 
 func (h *OIDCHandler) HandleJWKS(w http.ResponseWriter, r *http.Request) {
 	keys := h.svc.JWKS()
+	h.writeJSON(w, http.StatusOK, map[string]interface{}{"keys": keys})
+}
+
+func (h *OIDCHandler) writeJSON(w http.ResponseWriter, status int, data interface{}) {
+	payload, release, err := EncodeJSONPooled(data)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer release()
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"keys": keys})
+	w.WriteHeader(status)
+	w.Write(payload)
 }
 
 func (h *OIDCHandler) writeError(w http.ResponseWriter, status int, errorType, description string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]string{
+	h.writeJSON(w, status, map[string]string{
 		"error":             errorType,
 		"error_description": description,
 	})

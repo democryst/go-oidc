@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,6 +12,10 @@ import (
 
 	"github.com/google/uuid"
 )
+
+type ctxKey string
+
+const RequestIDKey ctxKey = "request_id"
 
 // --- Rate Limiting ---
 
@@ -101,7 +106,9 @@ func Logger(next http.Handler) http.Handler {
 		}
 
 		rw := &responseWriter{w, http.StatusOK}
-		next.ServeHTTP(rw, r)
+		// Inject into context
+		ctx := context.WithValue(r.Context(), RequestIDKey, requestID)
+		next.ServeHTTP(rw, r.WithContext(ctx))
 
 		duration := time.Since(start)
 

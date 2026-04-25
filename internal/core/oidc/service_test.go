@@ -128,6 +128,7 @@ func TestOIDCService_Authorize(t *testing.T) {
 		cfg := &config.Config{OIDC: config.OIDCConfig{AuthCodeTTL: 5 * time.Minute}}
 		svc := NewOIDCService(repo, signer, hasher, cfg)
 
+		repo.On("AppendAuditLog", mock.Anything, mock.Anything).Return(nil).Maybe()
 		repo.On("GetClient", ctx, clientID).Return(&model.Client{
 			ID:           clientID,
 			RedirectURIs: []string{"http://localhost/cb"},
@@ -150,6 +151,7 @@ func TestOIDCService_Authorize(t *testing.T) {
 		cfg := &config.Config{OIDC: config.OIDCConfig{AuthCodeTTL: 5 * time.Minute}}
 		svc := NewOIDCService(repo, signer, hasher, cfg)
 
+		repo.On("AppendAuditLog", mock.Anything, mock.Anything).Return(nil).Maybe()
 		repo.On("GetClient", ctx, clientID).Return(&model.Client{
 			ID:           clientID,
 			RedirectURIs: []string{"http://localhost/cb"},
@@ -189,6 +191,7 @@ func TestOIDCService_Token_AuthCode(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
+		repo.On("AppendAuditLog", mock.Anything, mock.Anything).Return(nil).Maybe()
 		hasher.On("HashCode", codeStr).Return(codeHash).Once()
 		repo.On("GetAuthCode", ctx, codeHash).Return(&model.AuthCode{
 			ID:            uuid.New(),

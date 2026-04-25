@@ -100,6 +100,7 @@ INSTRUCTION: [Exactly what code should be written. Enforce TDD if applicable. Ou
 - Antigravity explicitly delegates the implementation step to the **Dev** executor agent via Ollama.
 - Antigravity provides the Dev agent with the exact plan step, the relevant context, and strict TDD constraints (if applicable).
 - Once the Dev agent returns the code, Antigravity reviews and applies the surgical change exactly as provided.
+- After each logical unit of work → update `.antigravity/task.md` with progress (`[x]`).
 - After each logical unit of work → run the test suite. Must stay green.
 - If something unexpected happens → **stop, report, ask** — do not improvise.
 
@@ -206,3 +207,4 @@ INSTRUCTION: [Exactly what code should be written. Enforce TDD if applicable. Ou
 | **Goal-Driven** | Every action must trace back to the agreed task |
 | **Human in the Loop** | User approves plans before execution; user is informed of deviations |
 | **Fail Loudly** | Surface problems clearly — never silently swallow errors or skip steps |
+| **Doc Integrity** | Always update `task.md` during execution and `walkthrough.md` on completion |

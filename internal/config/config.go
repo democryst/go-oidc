@@ -14,9 +14,10 @@ import (
 // Config holds all runtime configuration for the OIDC server.
 type Config struct {
 	Server   ServerConfig
-	Database DatabaseConfig
-	OpenBao  OpenBaoConfig
 	OIDC     OIDCConfig
+	OpenBao  OpenBaoConfig
+	Database DatabaseConfig
+	Redis    RedisConfig
 }
 
 // ServerConfig controls the HTTP server behaviour.
@@ -41,6 +42,13 @@ type DatabaseConfig struct {
 	DSN string
 	// MaxConns is the pgx connection pool size.
 	MaxConns int
+}
+
+// RedisConfig holds connection settings for Redis.
+type RedisConfig struct {
+	Address  string
+	Password string
+	DB       int
 }
 
 // OpenBaoConfig holds connection settings for the OpenBao (Vault-compatible) KMS.
@@ -110,6 +118,11 @@ func Load() (*Config, error) {
 			IDTokenTTL:      parseDuration("OIDC_ID_TOKEN_TTL", 15*time.Minute, &errs),
 			RefreshTokenTTL: parseDuration("OIDC_REFRESH_TOKEN_TTL", 24*time.Hour, &errs),
 			AuthCodeTTL:     parseDuration("OIDC_AUTH_CODE_TTL", 5*time.Minute, &errs),
+		},
+		Redis: RedisConfig{
+			Address:  getEnvDefault("REDIS_ADDR", "localhost:6379"),
+			Password: getEnvDefault("REDIS_PASSWORD", ""),
+			DB:       0,
 		},
 	}
 

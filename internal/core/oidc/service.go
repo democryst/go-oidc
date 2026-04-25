@@ -70,6 +70,15 @@ func (s *OIDCService) Authorize(ctx context.Context, req interfaces.AuthorizeReq
 	// In a real flow, a session check happens before Authorize.
 	// For this exercise, we'll use a dummy userID if not present.
 	userID := uuid.Nil // In production, this must be a real authenticated user ID
+	s.repo.AppendAuditLog(ctx, &model.AuditEvent{
+		RequestID: s.getRequestID(ctx),
+		EventType: "AUTHORIZE_INIT",
+		ClientID:  client.ID,
+		Metadata: map[string]any{
+			"scope":         req.Scope,
+			"response_type": req.ResponseType,
+		},
+	})
 
 	authCode := &model.AuthCode{
 		ClientID:      clientID,
@@ -157,6 +166,12 @@ func (s *OIDCService) handleRefreshToken(ctx context.Context, req interfaces.Tok
 	}
 
 	// 2. Rotate
+	s.repo.AppendAuditLog(ctx, &model.AuditEvent{
+		RequestID: s.getRequestID(ctx),
+		EventType: "TOKEN_REFRESHED",
+		ActorID:   oldToken.UserID,
+		ClientID:  oldToken.ClientID,
+	})
 	newToken := &model.RefreshToken{
 		ClientID:  oldToken.ClientID,
 		UserID:    oldToken.UserID,
@@ -231,6 +246,13 @@ func (s *OIDCService) Discovery() *interfaces.DiscoveryDocument {
 		GrantTypesSupported:               []string{"authorization_code", "refresh_token"},
 		TokenEndpointAuthMethodsSupported: []string{"client_secret_post", "client_secret_basic"},
 	}
+}
+
+func (s *OIDCService) getRequestID(ctx context.Context) string {
+	if val, ok := ctx.Value("request_id").(string); ok {
+		return val
+	}
+	return ""
 }
 
 func (s *OIDCService) JWKS() []interfaces.JSONWebKey {

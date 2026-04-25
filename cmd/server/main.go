@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/openbao/openbao/api/v2"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/democryst/go-oidc/internal/api/handlers"
 	"github.com/democryst/go-oidc/internal/api/middleware"
@@ -46,6 +47,9 @@ func main() {
 	defer pool.Close()
 
 	repo := postgres.NewPostgresRepository(pool)
+	// Phase 2: Wrap repo with BatchRepository for high-load audit logging
+	batchRepo := postgres.NewBatchRepository(repo, pool, 1000, 500*time.Millisecond)
+	defer batchRepo.Close()
 
 	// 3. OpenBao (KMS)
 	baoCfg := api.DefaultConfig()
@@ -70,11 +74,31 @@ func main() {
 	dualSigner := signer.NewDualSigner(classicalSigner, pqcKeyFetcher)
 
 	// 5. OIDC Service
-	svc := oidc.NewOIDCService(repo, dualSigner, hasher, cfg)
+	svc := oidc.NewOIDCService(batchRepo, dualSigner, hasher, cfg)
 
 	// 6. Routing & Middleware
+	var rlStore middleware.RateLimitStore
+	if cfg.Redis.Address != "" {
+		rdb := redis.NewClient(&redis.Options{
+			Addr:     cfg.Redis.Address,
+			Password: cfg.Redis.Password,
+			DB:       cfg.Redis.DB,
+		})
+		// Check connection
+		rCtx, rCancel := context.WithTimeout(context.Background(), 2*time.Second)
+		if err := rdb.Ping(rCtx).Err(); err != nil {
+			log.Printf("Warning: Redis connect failed (%v), falling back to MemoryStore", err)
+			rlStore = middleware.NewMemoryStore()
+		} else {
+			log.Printf("Connected to Redis at %s for distributed rate limiting", cfg.Redis.Address)
+			rlStore = middleware.NewRedisStore(rdb)
+		}
+		rCancel()
+	} else {
+		rlStore = middleware.NewMemoryStore()
+	}
+
 	h := handlers.NewOIDCHandler(svc)
-	rlStore := middleware.NewMemoryStore()
 	rl := middleware.RateLimit(rlStore, cfg.Server.RateLimit, time.Minute)
 
 	mux := http.NewServeMux()

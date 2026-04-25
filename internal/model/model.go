@@ -26,6 +26,19 @@ type Client struct {
 	CreatedAt        time.Time
 }
 
+type TokenClaims struct {
+	Subject   string         `json:"sub"`
+	Issuer    string         `json:"iss"`
+	Audience  []string       `json:"aud"`
+	ExpiresAt int64          `json:"exp"`
+	IssuedAt  int64          `json:"iat"`
+	ClientID  string         `json:"client_id"`
+	Scope     string         `json:"scope"`
+	Nonce     string         `json:"nonce"`
+	RequestID string         `json:"request_id,omitempty"`
+	Extra     map[string]any `json:"extra,omitempty"`
+}
+
 // AuthCode represents a single-use, short-lived authorization code.
 type AuthCode struct {
 	ID            uuid.UUID
@@ -52,8 +65,11 @@ type RefreshToken struct {
 
 // AuditEvent is an append-only record of a security-relevant action.
 type AuditEvent struct {
-	EventType string
-	ActorID   *uuid.UUID
-	ClientID  *uuid.UUID
-	Metadata  map[string]any
+	ID        uuid.UUID      `json:"id"`
+	RequestID string         `json:"request_id"`
+	EventType string         `json:"event_type"`
+	ActorID   uuid.UUID      `json:"actor_id"`
+	ClientID  uuid.UUID      `json:"client_id"`
+	Metadata  map[string]any `json:"metadata"`
+	Timestamp time.Time      `json:"timestamp"`
 }
