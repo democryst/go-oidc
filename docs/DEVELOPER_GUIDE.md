@@ -1,67 +1,91 @@
-# Developer Guide: Contributing to the PQC OIDC Provider
+# Developer Guide: Building & Shipping the PQC Provider
 
-This guide provides developers with the knowledge needed to set up, modify, and extend the Post-Quantum Secure OIDC Provider. For design details, see [ARCHITECTURE.md](ARCHITECTURE.md).
+This guide provides the necessary steps to develop, test, and deploy the Post-Quantum Secure OIDC Provider.
 
 ## 1. Local Development Setup
 
-To run the full stack locally, you need:
-- **Go 1.21+**
-- **Docker** (for PostgreSQL and OpenBao)
-- **OpenBao** (or Vault) running the Transit engine.
+### Dependencies
+- **Go 1.23+**
+- **Docker** (Required for database and OpenBao adapters)
+- **Redis 7+** (Required for rate limiting)
 
-### Quick Start with Docker
+### Quick Start (Dev Mode)
+1. Initialize infrastructure:
+   ```bash
+   docker run --name oidc-db -e POSTGRES_PASSWORD=password -p 5432:5432 -d postgres:15-alpine
+   docker run --name oidc-redis -p 6379:6379 -d redis:7-alpine
+   docker run --name openbao -p 8200:8200 -e "BAO_DEV_ROOT_TOKEN_ID=root" -d openbao/openbao
+   ```
+2. Run the server:
+   ```bash
+   export ADMIN_API_KEY="dev-root-token"
+   go run cmd/server/main.go
+   ```
+
+---
+
+## 2. Production Build (Containerization)
+
+The project utilizes a **multi-stage, zero-trust Docker build** based on Google Distroless.
+
+### Build Image
 ```bash
-# Start a development database
-docker run --name oidc-db -e POSTGRES_PASSWORD=password -p 5432:5432 -d postgres:15-alpine
-
-# Start OpenBao in dev mode (for testing only)
-docker run --name openbao -p 8200:8200 -e "BAO_DEV_ROOT_TOKEN_ID=root" -d openbao/openbao
+docker build -t oidc-provider:latest .
 ```
 
-### Configuration
-Initialize your environment variables (or a `.env` file):
+### Security Features
+- **Non-Root**: Runs as UID 65532.
+- **Distroless**: No shell or package manager in the final image.
+- **Read-Only**: The container is designed for a read-only root filesystem.
+
+---
+
+## 3. Kubernetes Deployment
+
+Production manifests are located in `k8s/`. They assume an existing ingress controller and secret management (e.g. Vault CSI or K8s Secrets).
+
+### One-Command Deployment
 ```bash
-export DATABASE_DSN="postgres://postgres:password@localhost:5432/postgres?sslmode=disable"
-export OPENBAO_ADDR="http://localhost:8200"
-export OPENBAO_TOKEN="root"
-export TLS_CERT_FILE="certs/server.crt"
-export TLS_KEY_FILE="certs/server.key"
-export OIDC_ISSUER="http://localhost:8080"
+kubectl apply -f k8s/
 ```
 
-## 2. Infrastructure Patterns
+### Components
+- **Deployment**: Scales 10-100 pods based on RPS.
+- **Service**: Internal ClusterIP.
+- **PgBouncer**: High-performance DB connection proxy.
+- **NetworkPolicy**: Egress isolation for zero-trust networking.
 
-### Interface-First Development
-This project follows a strict "Ports & Adapters" pattern. **Never** depend on a concrete implementation (e.g., `*PostgresRepository`) in your core services.
+---
 
-1.  **Define the Interface**: Add methods to `pkg/interfaces/`.
-2.  **Implement the Adapter**: Create the logic in `internal/repository/` or `internal/crypto/`.
-3.  **Wire in Main**: Add the initialization to `cmd/server/main.go`.
+## 4. Performance & Stress Testing
 
-### Error Handling
-Use `fmt.Errorf("context: %w", err)` to wrap errors. This preserves the error chain for debugging while allowing handlers to check for specific error types using `errors.Is` or `errors.As`.
+We include a custom load generator to validate the 1M TPS capability.
 
-## 3. Cryptographic Extensions
+### Run Stress Test
+```bash
+go run cmd/stress/main.go -concurrency 500 -duration 1m -client-id <ID>
+```
 
-If you need to add a new PQC algorithm:
-1.  Add the algorithm string to the `model` or use it in the `pqc_keys` table.
-2.  Implement a new `Signer` or `KEM` in `internal/crypto/`.
-3.  Update the `DualSigner` if you want to support multiple outer JWS algorithms.
+### Monitoring Throughput
+Access the Prometheus metrics at `http://<provider>/metrics` to visualize:
+- **p99 Latency**
+- **Dual-Signing Overhead**
+- **Connection Pool Saturation**
 
-## 4. Testing Strategy
+---
 
-### Unit Tests
-- Prefer unit tests with mocks for business logic (`internal/core/oidc`).
-- Use `testify/mock` to simulate repository and crypto behavior.
-- Run: `go test ./internal/core/oidc/...`
+## 5. Administrative Dashboard
 
-### Integration Tests
-- Repository tests in `internal/repository/postgres` use **Testcontainers**.
-- These tests automatically spin up a real PostgreSQL container.
-- Run: `go test ./internal/repository/postgres/...` (Requires Docker).
+The provider includes a built-in admin UI at `/admin`.
 
-## 5. Security Checklist for New Code
-- **No Secrets in Logs**: Use the `middleware.Logger` and ensure any new request fields carrying secrets are redacted.
-- **Constant Time**: Any part of the code that compares hashes, verifiers, or signatures **must** use `subtle.ConstantTimeCompare`.
-- **Atomic Rotation**: Any state change involving token validity must be atomic (Database transactions).
-- **Graceful Failures**: If a PQC signature fails, the entire request must fail. Never fall back to classical-only "silently".
+### Access
+1. Visit `http://localhost:8080/admin`.
+2. Provide the `ADMIN_API_KEY` (configured via environment variable).
+3. Monitor live TPS, manage clients, and trigger PQC key rotations.
+
+---
+
+## 6. Testing Strategy
+- **Unit Tests**: `go test ./internal/core/oidc/...` (Business logic)
+- **Repo Tests**: `go test ./internal/repository/postgres/...` (Requires Docker)
+- **Benchmarking**: `go test -bench=. ./internal/crypto/signer/...` (Signer performance)

@@ -1,78 +1,65 @@
 # OIDC API Specification
 
-This document details the OIDC/OAuth2 endpoints implemented by the provider and their specific requirements, particularly around Post-Quantum security.
+This document details the OIDC/OAuth2 and Administrative endpoints implemented by the provider, including Post-Quantum security requirements and performance monitoring.
 
-## 1. Authorization Endpoint
-**URL:** `/authorize`  
-**Method:** `GET`
+## 1. OIDC Endpoints
 
-### Parameters
-- `client_id` (Required): The UUID of the client.
-- `response_type` (Required): Must be `code`.
-- `redirect_uri` (Required): Must match one of the registered URIs for the client.
-- `scope` (Required): Must contain `openid`.
-- `state` (Recommended): Opaque value for CSRF protection.
-- `code_challenge` (**Mandatory**): The SHA3-256 hash of the code verifier, Base64URL encoded.
-- `code_challenge_method` (**Mandatory**): Must be `S256`.
+### 1.1 Authorization Endpoint
+**URL:** `/authorize` | **Method:** `GET`
+- **PKCE Mandatory**: Use of `code_challenge` (S256) and `code_challenge_method` (S256) is mandatory. Requests without PKCE are rejected.
 
-### Security Nuance
-Unlike standard OIDC which might allow `plain` PKCE or no PKCE for certain clients, **this provider rejects any request without `S256` PKCE**.
+### 1.2 Token Endpoint
+**URL:** `/token` | **Method:** `POST`
+- **Grants**: `authorization_code`, `refresh_token`.
+- **Response**: Returns a **Nested JWS** (Dilithium3 outer, Ed25519 inner).
 
----
-
-## 2. Token Endpoint
-**URL:** `/token`  
-**Method:** `POST`  
-**Content-Type:** `application/x-www-form-urlencoded`
-
-### Grant Type: `authorization_code`
-- `grant_type`: `authorization_code`
-- `code`: The raw authorization code.
-- `redirect_uri`: Must match the URI used in the authorize request.
-- `code_verifier`: The raw PKCE verifier string.
-
-### Grant Type: `refresh_token`
-- `grant_type`: `refresh_token`
-- `refresh_token`: The opaque rotating refresh token.
-
-### Authentication
-The endpoint supports:
-1.  **Client Secret Post**: `client_id` and `client_secret` in the body.
-2.  **Basic Auth**: `Authorization: Basic <base64(id:secret)>`.
+### 1.3 Discovery & JWKS
+- **Discovery**: `/.well-known/openid-configuration`
+- **JWKS**: `/.well-known/jwks.json` (Includes both Ed25519 and Dilithium3 public keys).
 
 ---
 
-## 3. Discovery Endpoint
-**URL:** `/.well-known/openid-configuration`  
-**Method:** `GET`
+## 2. Administrative API (RBAC Protected)
+All admin endpoints require an `Authorization: Bearer <ADMIN_API_KEY>` header.
 
-Returns the standard OIDC discovery document. Note the `id_token_signing_alg_values_supported` field which includes `Dilithium3` in the outer JWS layer.
+### 2.1 System Statistics
+**URL:** `/admin/stats` | **Method:** `GET`
+Returns real-time performance metrics (TPS, Latency, Success Rate, Active Sessions).
+
+### 2.2 Client Management
+- **List Clients**: `GET /admin/clients`
+- **Register Client**: `POST /admin/clients/create`
+  - Body: `{"name": "App Name", "redirect_uris": ["https://..."]}`
+
+### 2.3 Forensic Audit Logs
+**URL:** `/admin/audit` | **Method:** `GET`
+Returns the recent audit events from the asynchronous PostgreSQL repository.
+
+### 2.4 PQC Governance
+**URL:** `/admin/rotate-keys` | **Method:** `POST`
+Triggers the rotation of the Dilithium3 signing keypair. Existing sessions remain valid for their inner classical layer, but new tokens will use the rotated PQC key.
 
 ---
 
-## 4. JWKS Endpoint
-**URL:** `/.well-known/jwks.json`  
-**Method:** `GET`
+## 3. Operational Endpoints
 
-Returns the public keys for both the classical (Ed25519) and Post-Quantum (Dilithium3) signers.
+### 3.1 Health Probes (Kubernetes Native)
+- **Liveness**: `/live` (200 OK if process is running).
+- **Readiness**: `/ready` (200 OK only if DB, Redis, and OpenBao connections are healthy).
 
-### JWK Entry for Dilithium3 (Experimental)
-Dilithium3 keys are exported using a custom `kty` or extended `alg` identifier depending on the validator's capabilities.
-- `kty`: `PQC` (Proposed)
-- `alg`: `Dilithium3`
-- `use`: `sig`
-- `pub`: Standard binary representation in Base64URL.
+### 3.2 Observability Exporter
+**URL:** `/metrics` | **Method:** `GET`
+Exposes **Prometheus-formatted** metrics:
+- `oidc_requests_total`: Throughput counter by path/method/status.
+- `signing_duration_seconds`: Histogram of cryptographic operations (Ed25519 vs Dilithium3).
+- `http_request_duration_seconds`: Request latency distribution.
 
 ---
 
-## 5. Token Formats
+## 4. Common Headers
 
-### ID Token / Access Token
-Tokens are returned in a **Nested JWS** string format:
-`BASE64(Dilithium-Header) . BASE64(Ed25519-Signed-JWT) . BASE64(Dilithium-Signature)`
+### X-Request-ID
+Clients or Load Balancers are encouraged to provide an `X-Request-ID`. If missing, the provider generates a UUID. This ID is logged across the system to enable forensic tracing of high-load transactions.
 
-Validators should:
-1.  Verify the outer Dilithium signature using the `JWKS` Dilithium public key.
-2.  Unwrap the payload (which is the inner JWT).
-3.  Verify the inner Ed25519 signature using the `JWKS` Ed25519 public key.
-4.  Process standard OIDC claims (`iss`, `sub`, `aud`, etc).
+### Rate Limiting
+Requests are subject to global rate limiting. If exceeded, the server returns `429 Too Many Requests` with a `Retry-After` header.

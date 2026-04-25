@@ -1,74 +1,71 @@
 # Technical Architecture: Post-Quantum Secure OIDC Provider
 
-This document provides a comprehensive overview of the internal workings, cryptographic choices, and security architecture of the Post-Quantum Secure OIDC Identity Provider.
+This document provides a comprehensive overview of the internal workings, cryptographic choices, and security architecture of the Post-Quantum Secure OIDC Identity Provider, designed for 1 Million TPS scale.
 
 ## 1. System Overview
-The goal of this project is to provide a standard-compliant OIDC Identity Provider that is resilient against future quantum computer attacks. It achieves this through **Hybrid Cryptography**, combining NIST-approved classical algorithms (Ed25519, X25519) with Post-Quantum primitives (Dilithium3, Kyber-768).
+The provider is a standard-compliant OIDC Identity Provider resilient against quantum computer attacks. It utilizes **Hybrid Cryptography**, combining NIST-approved classical algorithms (Ed25519) with Post-Quantum primitives (Dilithium3).
 
 ## 2. Layered Architecture
 The project follows a **Hexagonal Architecture** (Ports & Adapters) to decouple business logic from infrastructure.
 
 - **Domain Model (`internal/model`)**: Pure data structures (Client, User, Token).
-- **Core Logic (`internal/core/oidc`)**: Orchestrates the OIDC flows (Authorize, Token).
+- **Core Logic (`internal/core/oidc`)**: Orchestrates the OIDC flows (Authorize, Token, Admin).
 - **Ports (`pkg/interfaces`)**: Define contracts for Repository, Signer, Hasher, and Encryptor.
 - **Adapters**:
-    - **Postgres (`internal/repository/postgres`)**: Persistent storage with atomic transactions.
+    - **Performance Repository (`internal/repository/postgres`)**: Multi-modal DB adapter supporting synchronous queries and asynchronous **Batch Logging** for high-throughput audit trails.
     - **OpenBao (`internal/crypto/signer`)**: KMS-backed signing and encryption.
-    - **API (`internal/api/handlers`)**: HTTP entry points.
+    - **Global Cache (`internal/api/middleware`)**: Redis-backed distributed rate limiting.
+    - **API (`internal/api/handlers`)**: HTTP entry points including OIDC, Admin UI, and Health Probes.
 
 ## 3. Cryptographic Design
 
 ### 3.1. Nested Dual-Signing (Option A)
-To ensure both current compatibility and future security, all ID tokens and Access tokens are dual-signed using a **Nested JWS** approach.
+All tokens are dual-signed using a **Nested JWS** approach for backward compatibility and future security.
 
-```mermaid
-graph LR
-    A[Claims] --> B(Ed25519 Signer)
-    B --> C[Inner JWT string]
-    C --> D(Dilithium3 Signer)
-    D --> E[Outer JWS Envelope]
-```
-
-- **Inner Layer**: A standard Ed25519 JWT signed via OpenBao Transit. This ensures that current OIDC clients can still verify the token using classical logic.
-- **Outer Layer**: The entire Ed25519 JWT string is treated as the payload for a Crystals-Dilithium3 signature. The header contains `{"alg":"Dilithium3","cty":"JWT"}`.
+- **Inner Layer**: A standard Ed25519 JWT signed via OpenBao Transit. Ensures current OIDC clients can verify tokens classically.
+- **Outer Layer**: The entire Ed25519 JWT string is the payload for a **Crystals-Dilithium3** signature (Headers: `{"alg":"Dilithium3","cty":"JWT"}`).
 
 ### 3.2. PQC Key Storage (Adapter Pattern)
-Because most KMS (OpenBao/Vault) do not yet natively support Dilithium3, we use an **Encrypted Fallback Adapter**:
-1.  **Generation**: Dilithium keys are generated via `circl`.
-2.  **Protection**: The private key is encrypted with **AES-256-GCM** via the OpenBao Transit engine.
-3.  **Storage**: The encrypted blob is stored in the `pqc_keys` table in PostgreSQL.
-4.  **Signing**: On each sign request, the service fetches the blob, decrypts it in-memory via OpenBao, performs the sign, and wipes the raw key material.
+As many KMS systems do not yet natively support Dilithium3:
+1.  **Protection**: Private keys are encrypted with **AES-256-GCM** via OpenBao Transit.
+2.  **Storage**: Encrypted blobs reside in the `pqc_keys` table.
+3.  **Wiping**: Raw key material is decrypted in-memory only for signing and then immediately ready for GC.
 
-## 4. Logical Data Flows
+## 4. High-Scale Engineering (1M TPS Strategy)
 
-### 4.1. Authorization Code Flow with PKCE
-The provider enforces strict **PKCE S256** to prevent authorization code interception attacks.
+### 4.1. Distributed Rate Limiting
+Utilizes a **Redis-backed middleware** with atomic Lua scripts. This allows the provider to throttle clients globally across multiple Kubernetes pods with sub-millisecond overhead.
 
-1.  **Authorize**: Validates client and redirect URI. Generates a raw code and stores its SHA3-256 hash along with the `code_challenge`.
-2.  **Token Exchange**:
-    - Client sends `code_verifier`.
-    - Server hashes `code_verifier` and compares it to the stored `code_challenge` using **constant-time comparison**.
-    - If valid, the code is atomically marked as `used`.
+### 4.2. Asynchronous Audit Pipeline
+Under high load (1M TPS), synchronous I/O to PostgreSQL is a bottleneck. We implement an **Asynchronous Batch Repository**:
+- Events are queued in a high-concurrency buffer.
+- A background worker pool flushes events to the `audit_log` table using the **PostgreSQL COPY protocol** for maximum ingestion speed.
 
-### 4.2. Atomic Token Rotation
-Refresh tokens are rotated on every use. The database implementation uses a transaction to ensure that the old token is revoked and the new token is issued as a single atomic unit, preventing race conditions or replay attacks.
+### 4.3. Resource Efficiency
+- **`sync.Pool`**: Used for JSON encoders and byte buffers to drastically reduce GC pressure during high concurrent signing operations.
+- **PgBouncer**: Mandatory connection proxy in `transaction` mode to handle the "thundering herd" of thousands of incoming OIDC requests.
 
-## 5. Security & Hardening
-- **SHA3-256**: Used for all internal hashing (codes, nonces) for quantum resistance.
-- **Rate Limiting**: Implemented at the middleware layer using a `ENDPOINT:IP:CLIENT_ID` keying strategy to prevent brute-force attacks on codes and client secrets.
-- **Metadata Redaction**: The logging middleware is designed to avoid logging sensitive fields like `client_secret` or `refresh_token`.
-- **KMS Source of Truth**: All private keys (except ephemeral Dilithium artifacts) stay within the OpenBao hardware security boundary.
+## 5. Security & Governance
+
+### 5.1. Forensic Observability
+Every request is injected with a `RequestID` at the middleware layer. This ID propagates through the OIDC flow and is recorded in the asynchronous audit log, enabling full forensic correlation from initial authorize to final token issue.
+
+### 5.2. Zero-Trust Kubernetes
+The deployment follows the **"Restricted" Pod Security Standard**:
+- **Distroless Runtime**: Minimal attack surface (no shell).
+- **Egress Isolation**: `NetworkPolicy` allows traffic only to authorized Redis, Postgres, and OpenBao endpoints.
 
 ## 6. Project Structure
 ```text
 .
-├── cmd/server/main.go      # Wire-up and Entry point
+├── cmd/             # Binaries (Server, Stress Test)
 ├── internal/
-│   ├── api/                # Handlers & Middleware
-│   ├── core/oidc/          # Service Orchestration
-│   ├── crypto/             # Signer, Hasher, KEM implementations
-│   ├── model/              # Domain Objects
-│   └── repository/         # Database implementation
-├── pkg/interfaces/         # Interface Definitions (Ports)
-└── migrations/             # SQL Schema
+│   ├── api/         # Handlers, Middleware, Health, Admin
+│   ├── core/oidc/   # Service Orchestration & Admin Logic
+│   ├── crypto/      # Dual-Signer, PQC Adapters, Metrics
+│   ├── model/       # Domain Objects & Audit Events
+│   └── repository/  # PostgreSQL (Batch), Redis Adapters
+├── pkg/interfaces/  # Port Definitions
+├── k8s/             # Production Orchestration (HPA, NP, PgBouncer)
+└── migrations/      # SQL Schema (Audit-ready)
 ```
