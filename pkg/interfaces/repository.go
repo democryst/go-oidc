@@ -52,4 +52,9 @@ type Repository interface {
 	// AppendAuditLog writes an immutable audit record.
 	// The DB role must have INSERT-only permission on the audit_log table.
 	AppendAuditLog(ctx context.Context, event *model.AuditEvent) error
+
+	// --- Admin ---
+	ListClients(ctx context.Context) ([]model.Client, error)
+	SaveClient(ctx context.Context, client *model.Client) error
+	GetAuditLogs(ctx context.Context, limit int) ([]model.AuditEvent, error)
 }

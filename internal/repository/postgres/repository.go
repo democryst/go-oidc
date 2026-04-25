@@ -270,8 +270,9 @@ func (r *PostgresRepository) GetPQCKey(ctx context.Context, keyID uuid.UUID) (st
 
 // AppendAuditLog securely appends an audit event to the append-only table.
 func (r *PostgresRepository) AppendAuditLog(ctx context.Context, event *model.AuditEvent) error {
-	query := `INSERT INTO audit_log (event_type, actor_id, client_id, metadata) VALUES ($1, $2, $3, $4)`
+	query := `INSERT INTO audit_log (request_id, event_type, actor_id, client_id, metadata) VALUES ($1, $2, $3, $4, $5)`
 	_, err := r.pool.Exec(ctx, query,
+		event.RequestID,
 		event.EventType,
 		event.ActorID,
 		event.ClientID,
@@ -281,4 +282,48 @@ func (r *PostgresRepository) AppendAuditLog(ctx context.Context, event *model.Au
 		return fmt.Errorf("failed to append audit log: %w", err)
 	}
 	return nil
+}
+
+func (r *PostgresRepository) ListClients(ctx context.Context) ([]model.Client, error) {
+	query := `SELECT client_id, name, redirect_uris, created_at FROM clients`
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var clients []model.Client
+	for rows.Next() {
+		var c model.Client
+		if err := rows.Scan(&c.ID, &c.Name, &c.RedirectURIs, &c.CreatedAt); err != nil {
+			return nil, err
+		}
+		clients = append(clients, c)
+	}
+	return clients, nil
+}
+
+func (r *PostgresRepository) SaveClient(ctx context.Context, client *model.Client) error {
+	query := `INSERT INTO clients (client_id, name, redirect_uris) VALUES ($1, $2, $3)`
+	_, err := r.pool.Exec(ctx, query, client.ID, client.Name, client.RedirectURIs)
+	return err
+}
+
+func (r *PostgresRepository) GetAuditLogs(ctx context.Context, limit int) ([]model.AuditEvent, error) {
+	query := `SELECT log_id, request_id, event_type, actor_id, client_id, metadata, created_at FROM audit_log ORDER BY created_at DESC LIMIT $1`
+	rows, err := r.pool.Query(ctx, query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var logs []model.AuditEvent
+	for rows.Next() {
+		var e model.AuditEvent
+		if err := rows.Scan(&e.ID, &e.RequestID, &e.EventType, &e.ActorID, &e.ClientID, &e.Metadata, &e.Timestamp); err != nil {
+			return nil, err
+		}
+		logs = append(logs, e)
+	}
+	return logs, nil
 }

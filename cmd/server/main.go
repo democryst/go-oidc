@@ -106,6 +106,8 @@ func main() {
 	adminMux := http.NewServeMux()
 	adminMux.HandleFunc("/admin/stats", adminHandler.HandleStats)
 	adminMux.HandleFunc("/admin/clients", adminHandler.HandleClients)
+	adminMux.HandleFunc("/admin/clients/create", adminHandler.HandleCreateClient)
+	adminMux.HandleFunc("/admin/rotate-keys", adminHandler.HandleRotateKeys)
 	adminMux.HandleFunc("/admin/audit", adminHandler.HandleAuditLogs)
 
 	// Protected Admin API

@@ -24,6 +24,7 @@ CREATE TABLE users (
 -- The raw secret is never stored here.
 CREATE TABLE clients (
     client_id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    name              VARCHAR(255) NOT NULL DEFAULT 'unnamed',
     client_secret_enc BYTEA       NOT NULL,
     redirect_uris     TEXT[]      NOT NULL,
     scopes            TEXT[]      NOT NULL DEFAULT '{openid}',
@@ -69,7 +70,8 @@ CREATE INDEX idx_refresh_tokens_expires ON refresh_tokens (expires_at);
 -- This schema migration grants the permission; the role must be created
 -- by the DBA before running this migration.
 CREATE TABLE audit_log (
-    id         BIGSERIAL    PRIMARY KEY,
+    log_id     BIGSERIAL    PRIMARY KEY,
+    request_id VARCHAR(128),
     event_type VARCHAR(64)  NOT NULL,
     actor_id   UUID,
     client_id  UUID,

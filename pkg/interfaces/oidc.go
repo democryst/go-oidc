@@ -1,7 +1,11 @@
 // Package interfaces defines the service contract for the OIDC core flows.
 package interfaces
 
-import "context"
+import (
+	"context"
+
+	"github.com/democryst/go-oidc/internal/model"
+)
 
 // AuthorizeRequest holds validated parameters from the /authorize endpoint.
 type AuthorizeRequest struct {
@@ -79,4 +83,10 @@ type OIDCService interface {
 
 	// JWKS returns public keys for both the Ed25519 and Dilithium3 signers.
 	JWKS() []JSONWebKey
+
+	// Admin Actions
+	GetAuditLogs(ctx context.Context, limit int) ([]model.AuditEvent, error)
+	ListClients(ctx context.Context) ([]model.Client, error)
+	RegisterClient(ctx context.Context, name string, redirectURIs []string) (*model.Client, error)
+	RotatePQCKeys(ctx context.Context) error
 }

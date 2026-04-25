@@ -75,6 +75,17 @@ func (m *MockRepository) GetPQCKey(ctx context.Context, keyID uuid.UUID) (string
 func (m *MockRepository) AppendAuditLog(ctx context.Context, e *model.AuditEvent) error {
 	return m.Called(ctx, e).Error(0)
 }
+func (m *MockRepository) ListClients(ctx context.Context) ([]model.Client, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]model.Client), args.Error(1)
+}
+func (m *MockRepository) SaveClient(ctx context.Context, c *model.Client) error {
+	return m.Called(ctx, c).Error(0)
+}
+func (m *MockRepository) GetAuditLogs(ctx context.Context, l int) ([]model.AuditEvent, error) {
+	args := m.Called(ctx, l)
+	return args.Get(0).([]model.AuditEvent), args.Error(1)
+}
 
 type MockSigner struct {
 	mock.Mock

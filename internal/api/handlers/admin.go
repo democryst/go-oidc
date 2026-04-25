@@ -40,13 +40,65 @@ func (h *AdminHandler) HandleStats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) HandleAuditLogs(w http.ResponseWriter, r *http.Request) {
-	// In production, this would query the Postgres audit_log table.
+	// Querying the Postgres audit_log table.
+	ctx := r.Context()
+	logs, err := h.svc.GetAuditLogs(ctx, 50) // Need to add this method to service
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`[]`))
+	json.NewEncoder(w).Encode(logs)
 }
 
 func (h *AdminHandler) HandleClients(w http.ResponseWriter, r *http.Request) {
-	// Return registered OIDC clients.
+	ctx := r.Context()
+	clients, err := h.svc.ListClients(ctx) // Need to add this method to service
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`[]`))
+	json.NewEncoder(w).Encode(clients)
+}
+
+func (h *AdminHandler) HandleCreateClient(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Name         string   `json:"name"`
+		RedirectURIs []string `json:"redirect_uris"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	client, err := h.svc.RegisterClient(ctx, req.Name, req.RedirectURIs)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(client)
+}
+
+func (h *AdminHandler) HandleRotateKeys(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+	if err := h.svc.RotatePQCKeys(ctx); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

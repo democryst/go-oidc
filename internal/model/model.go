@@ -20,6 +20,7 @@ type User struct {
 // Client represents a registered OAuth2 client application.
 type Client struct {
 	ID               uuid.UUID
+	Name             string
 	ClientSecretHash []byte // Argon2id hash; raw secret never stored
 	RedirectURIs     []string
 	Scopes           []string
