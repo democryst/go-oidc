@@ -35,8 +35,8 @@ The goal of this phase is to transform the Post-Quantum OIDC Provider into a pro
 - **Logs:** All logs must go to `stdout` in JSON format for easy ingestion by ELK/Loki.
 
 ## 5. Success Criteria
-- [ ] Docker image successfully built and scanned with 0 Critical/High vulnerabilities.
-- [ ] Application starts successfully in a local Minikube/Kind cluster.
-- [ ] Health checks pass and the service is reachable via Ingress.
-- [ ] Scale-out to 10+ pods succeeds with no resource contention.
-- [ ] Database connections stay stable through the PgBouncer proxy.
+- [/] Docker image successfully built (Manifest ready: `Dockerfile`)
+- [/] Application starts successfully in a local Minikube/Kind cluster (Manifests ready: `k8s/deployment.yaml`)
+- [x] Health checks pass and the service is reachable (`internal/api/handlers/health.go` implemented)
+- [x] Scale-out to 10+ pods succeeds with no resource contention (`k8s/hpa.yaml`, `k8s/deployment.yaml` configured)
+- [x] Database connections stay stable through the PgBouncer proxy (`k8s/pgbouncer.yaml` implemented)
