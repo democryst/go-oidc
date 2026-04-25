@@ -39,7 +39,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("parse db dsn: %v", err)
 	}
-	pgCfg.MaxConns = int32(cfg.Database.MaxConns)
+	if cfg.Database.MaxConns > 0 && cfg.Database.MaxConns <= 2147483647 {
+		pgCfg.MaxConns = int32(cfg.Database.MaxConns)
+	}
 
 	pool, err := pgxpool.NewWithConfig(dbCtx, pgCfg)
 	if err != nil {

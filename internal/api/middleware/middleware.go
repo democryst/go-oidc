@@ -77,7 +77,7 @@ func RateLimit(store RateLimitStore, limit int, window time.Duration) func(http.
 			if !store.Check(key, limit, window) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusTooManyRequests)
-				json.NewEncoder(w).Encode(map[string]string{"error": "rate_limit_exceeded"})
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": "rate_limit_exceeded"})
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -112,23 +112,21 @@ func Logger(next http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		// Structured Log Line (Simplified for demonstration)
-		// Parameters to redact if they appear in logs
-		redact := func(key, val string) string {
-			if key == "client_secret" || key == "refresh_token" || key == "password" {
-				return "[REDACTED]"
-			}
-			return val
-		}
+		// Mitigation for G706: Sanitize untrusted input
+		safeID := strings.ReplaceAll(requestID, "\n", "")
+		safeID = strings.ReplaceAll(safeID, "\r", "")
+		safeMethod := strings.ReplaceAll(r.Method, "\n", "")
+		safeMethod = strings.ReplaceAll(safeMethod, "\r", "")
+		safePath := strings.ReplaceAll(r.URL.Path, "\n", "")
+		safePath = strings.ReplaceAll(safePath, "\r", "")
 
-		log.Printf("[%s] %s %s | %d | %v | IP: %s",
-			requestID,
-			r.Method,
-			r.URL.Path,
+		log.Printf("[%s] %s %s | %d | %v | IP: %s", // #nosec G706
+			safeID,
+			safeMethod,
+			safePath,
 			rw.status,
 			duration,
 			r.RemoteAddr,
 		)
-		_ = redact // avoid unused
 	})
 }

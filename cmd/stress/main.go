@@ -61,8 +61,8 @@ func main() {
 				}
 				
 				// Read body and close to ensure connection reuse
-				io.Copy(io.Discard, resp.Body)
-				resp.Body.Close()
+				_, _ = io.Copy(io.Discard, resp.Body)
+				_ = resp.Body.Close()
 
 				if resp.StatusCode >= 400 && resp.StatusCode != 401 && resp.StatusCode != 429 {
 					// We expect 401 (unauthorized) or 429 (rate limited) if no real data is provided,

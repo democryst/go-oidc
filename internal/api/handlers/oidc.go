@@ -110,7 +110,7 @@ func (h *OIDCHandler) writeJSON(w http.ResponseWriter, status int, data interfac
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	w.Write(payload)
+	_, _ = w.Write(payload)
 }
 
 func (h *OIDCHandler) writeError(w http.ResponseWriter, status int, errorType, description string) {

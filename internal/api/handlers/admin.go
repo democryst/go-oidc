@@ -36,7 +36,7 @@ func (h *AdminHandler) HandleStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stats)
+	_ = json.NewEncoder(w).Encode(stats)
 }
 
 func (h *AdminHandler) HandleAuditLogs(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +48,7 @@ func (h *AdminHandler) HandleAuditLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(logs)
+	_ = json.NewEncoder(w).Encode(logs)
 }
 
 func (h *AdminHandler) HandleClients(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +59,7 @@ func (h *AdminHandler) HandleClients(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(clients)
+	_ = json.NewEncoder(w).Encode(clients)
 }
 
 func (h *AdminHandler) HandleCreateClient(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +85,7 @@ func (h *AdminHandler) HandleCreateClient(w http.ResponseWriter, r *http.Request
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(client)
+	_ = json.NewEncoder(w).Encode(client)
 }
 
 func (h *AdminHandler) HandleRotateKeys(w http.ResponseWriter, r *http.Request) {

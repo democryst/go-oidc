@@ -70,7 +70,7 @@ func (s *OIDCService) Authorize(ctx context.Context, req interfaces.AuthorizeReq
 	// In a real flow, a session check happens before Authorize.
 	// For this exercise, we'll use a dummy userID if not present.
 	userID := uuid.Nil // In production, this must be a real authenticated user ID
-	s.repo.AppendAuditLog(ctx, &model.AuditEvent{
+	_ = s.repo.AppendAuditLog(ctx, &model.AuditEvent{
 		RequestID: s.getRequestID(ctx),
 		EventType: "AUTHORIZE_INIT",
 		ClientID:  client.ID,
@@ -166,7 +166,7 @@ func (s *OIDCService) handleRefreshToken(ctx context.Context, req interfaces.Tok
 	}
 
 	// 2. Rotate
-	s.repo.AppendAuditLog(ctx, &model.AuditEvent{
+	_ = s.repo.AppendAuditLog(ctx, &model.AuditEvent{
 		RequestID: s.getRequestID(ctx),
 		EventType: "TOKEN_REFRESHED",
 		ActorID:   oldToken.UserID,

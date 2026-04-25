@@ -17,7 +17,7 @@ func (h *HealthHandler) Liveness(w http.ResponseWriter, r *http.Request) {
 	// Liveness: indicates if the app is still running.
 	// Minimum check: just return OK.
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK"))
 }
 
 func (h *HealthHandler) Readiness(w http.ResponseWriter, r *http.Request) {
@@ -30,5 +30,5 @@ func (h *HealthHandler) Readiness(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(status)
+	_ = json.NewEncoder(w).Encode(status)
 }

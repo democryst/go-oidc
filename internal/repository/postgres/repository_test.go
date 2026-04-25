@@ -27,7 +27,7 @@ func setupTestDB(t *testing.T) (interfaces.Repository, *pgxpool.Pool, context.Co
 	require.NoError(t, err)
 	migrationFile := filepath.Join(wd, "../../../migrations/001_initial_schema.up.sql")
 
-	postgresContainer, err := postgres.RunContainer(ctx,
+	postgresContainer, err := postgres.Run(ctx,
 		testcontainers.WithImage("postgres:15-alpine"),
 		postgres.WithInitScripts(migrationFile),
 		postgres.WithDatabase("testdb"),
