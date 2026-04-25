@@ -37,4 +37,3 @@ As a mission-critical OIDC platform handling high-scale Post-Quantum credentials
 - [x] `staticcheck` integrated into `Makefile` (**0 Quality issues remaining**).
 - [x] `make scan` successfully executes all tools on the codebase.
 - [x] All "High" and "Critical" code-level vulnerabilities identified by the scan are resolved.
-  - *Note: Systemic vulnerabilities (GO-2026-4947, etc.) have been mitigated by updating the project to Go 1.26.2.*
