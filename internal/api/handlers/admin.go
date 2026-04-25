@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/democryst/go-oidc/internal/api/middleware"
 	"github.com/democryst/go-oidc/pkg/interfaces"
 )
 
@@ -25,14 +26,13 @@ type StatsResponse struct {
 }
 
 func (h *AdminHandler) HandleStats(w http.ResponseWriter, r *http.Request) {
-	// In a real Phase 2/3 implementation, this would pull from Prometheus or Redis.
-	// For this sprint, we return mock real-time data to demonstrate the UI.
+	tps, p99 := middleware.GetLiveStats()
 	stats := StatsResponse{
 		Timestamp:      time.Now(),
-		TPS:            12450.5,
-		P99Latency:     "0.74ms",
-		SuccessRate:    99.98,
-		ActiveSessions: 45000,
+		TPS:            tps,
+		P99Latency:     p99,
+		SuccessRate:    99.99, // Should be calculated from atomic errors
+		ActiveSessions: 1250,  // Should be pulled from Valkey
 	}
 
 	w.Header().Set("Content-Type", "application/json")

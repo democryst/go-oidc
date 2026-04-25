@@ -6,7 +6,7 @@ A high-performance, production-grade OpenID Connect Identity Provider implemente
 - **Hybrid PQC:** Nested JWS (Ed25519 inner, Crystals-Dilithium3 outer) for backward compatibility and future-proof security.
 - **Extreme Scale:** Architected for **1 Million Transactions Per Second (TPS)** using:
   - Asynchronous Audit Batching (PostgreSQL `COPY` protocol).
-  - Distributed Rate Limiting (Redis + Lua).
+  - Distributed Rate Limiting (Valkey + Lua).
   - High-Efficiency Memory Management (`sync.Pool`).
 - **KMS Integration:** Native support for **OpenBao Transit** (and HashiCorp Vault).
 - **Zero-Trust Deployment:** OCI-compliant distroless images with Kubernetes NetworkPolicies and HPA.
@@ -25,7 +25,7 @@ A high-performance, production-grade OpenID Connect Identity Provider implemente
 - **Go 1.26.2+** (for local development)
 
 ### One-Command Start
-Run the full stack (Provider, DB, Redis, OpenBao) locally:
+Run the full stack (Provider, DB, Valkey, OpenBao) locally:
 ```bash
 make up
 ```

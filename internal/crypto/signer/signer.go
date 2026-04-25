@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -70,8 +71,46 @@ func (s *OpenBaoSigner) Sign(ctx context.Context, claims interfaces.TokenClaims)
 }
 
 func (s *OpenBaoSigner) PublicKeys() []interfaces.JSONWebKey {
-	// Phase 2b placeholder
-	return nil
+	path := fmt.Sprintf("%s/keys/%s", s.transitMount, s.ed25519KeyName)
+	secret, err := s.client.Logical().Read(path)
+	if err != nil {
+		return nil
+	}
+	if secret == nil || secret.Data == nil {
+		return nil
+	}
+
+	keys, ok := secret.Data["keys"].(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	// Fetch the latest version's public key
+	var latestKey string
+	latestVersion := 0
+	for k, v := range keys {
+		vers, _ := strconv.Atoi(k)
+		if vers > latestVersion {
+			latestVersion = vers
+			kMap, _ := v.(map[string]any)
+			latestKey, _ = kMap["public_key"].(string)
+		}
+	}
+
+	if latestKey == "" {
+		return nil
+	}
+
+	return []interfaces.JSONWebKey{
+		{
+			KeyID:     fmt.Sprintf("%s-v%d", s.ed25519KeyName, latestVersion),
+			KeyType:   "OKP",
+			Algorithm: "EdDSA",
+			Use:       "sig",
+			Crv:       "Ed25519",
+			X:         latestKey,
+		},
+	}
 }
 
 // ─── Custom jwt.SigningMethod for OpenBao Transit ────────────────────────────

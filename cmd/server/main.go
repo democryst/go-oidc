@@ -81,20 +81,20 @@ func main() {
 
 	// 6. Routing & Middleware
 	var rlStore middleware.RateLimitStore
-	if cfg.Redis.Address != "" {
+	if cfg.Valkey.Address != "" {
 		rdb := redis.NewClient(&redis.Options{
-			Addr:     cfg.Redis.Address,
-			Password: cfg.Redis.Password,
-			DB:       cfg.Redis.DB,
+			Addr:     cfg.Valkey.Address,
+			Password: cfg.Valkey.Password,
+			DB:       cfg.Valkey.DB,
 		})
 		// Check connection
 		rCtx, rCancel := context.WithTimeout(context.Background(), 2*time.Second)
 		if err := rdb.Ping(rCtx).Err(); err != nil {
-			log.Printf("Warning: Redis connect failed (%v), falling back to MemoryStore", err)
+			log.Printf("Warning: Valkey connect failed (%v), falling back to MemoryStore", err)
 			rlStore = middleware.NewMemoryStore()
 		} else {
-			log.Printf("Connected to Redis at %s for distributed rate limiting", cfg.Redis.Address)
-			rlStore = middleware.NewRedisStore(rdb)
+			log.Printf("Connected to Valkey at %s for distributed rate limiting", cfg.Valkey.Address)
+			rlStore = middleware.NewValkeyStore(rdb)
 		}
 		rCancel()
 	} else {

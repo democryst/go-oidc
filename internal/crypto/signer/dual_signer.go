@@ -25,9 +25,26 @@ func NewDualSigner(classical interfaces.Signer, pqcKeyFetcher func(context.Conte
 }
 
 func (s *DualSigner) PublicKeys() []interfaces.JSONWebKey {
-	// Combines Ed25519 and Dilithium public keys
-	// In a real implementation, it would fetch both from KMS/DB
-	return s.classicalSigner.PublicKeys() // Placeholder: need to add Dilithium3 JWK
+	keys := s.classicalSigner.PublicKeys()
+
+	// Fetch Dilithium3 Public Key
+	// In a real high-load scenario, this would be cached.
+	privKey, err := s.pqcKeyFetcher(context.Background())
+	if err == nil && privKey != nil {
+		pubKey := privKey.Public().(*mode3.PublicKey)
+		pubBytes := pubKey.Bytes()
+		pubB64 := base64.RawURLEncoding.EncodeToString(pubBytes)
+
+		keys = append(keys, interfaces.JSONWebKey{
+			KeyID:     "oidc-dilithium3-v1", // In production, this would be dynamic
+			KeyType:   "ML-DSA",
+			Algorithm: "ML-DSA-65",
+			Use:       "sig",
+			X:         pubB64,
+		})
+	}
+
+	return keys
 }
 
 func (s *DualSigner) Sign(ctx context.Context, claims interfaces.TokenClaims) (string, error) {

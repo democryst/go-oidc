@@ -9,7 +9,7 @@ services:
       - "8080:8080"
     environment:
       - DATABASE_DSN=postgres://postgres:password@db:5432/postgres?sslmode=disable
-      - REDIS_ADDR=valkey:6379
+      - VALKEY_ADDR=valkey:6379
       - OPENBAO_ADDR=http://openbao:8200
       - OPENBAO_TOKEN=root
       - ADMIN_API_KEY=dev-root-token

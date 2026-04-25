@@ -11,11 +11,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/democryst/go-oidc/pkg/interfaces"
 )
-
-type ctxKey string
-
-const RequestIDKey ctxKey = "request_id"
 
 // --- Rate Limiting ---
 
@@ -107,7 +104,7 @@ func Logger(next http.Handler) http.Handler {
 
 		rw := &responseWriter{w, http.StatusOK}
 		// Inject into context
-		ctx := context.WithValue(r.Context(), RequestIDKey, requestID)
+		ctx := context.WithValue(r.Context(), interfaces.RequestIDKey, requestID)
 		next.ServeHTTP(rw, r.WithContext(ctx))
 
 		duration := time.Since(start)

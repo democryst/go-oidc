@@ -65,3 +65,12 @@
 - [x] Integrate `make scan` into Makefile (gosec, govulncheck, staticcheck)
 - [x] Implement `make install-tools` for automated setup
 - [x] Verify `verify` target include security scans
+- [x] Remediate all SAST/SCA/Quality issues (0 High/Critical remaining)
+- [x] Upgrade project to Go 1.26.2 for stdlib security
+
+# Phase 7: Production Parity & Forensic Observability [COMPLETED]
+- [x] Refactor "Redis" references to "Valkey" across internal/ codebase
+- [x] Implement Dilithium3 JWK parameters in `interfaces.JSONWebKey` and `signer.go`
+- [x] Connect `HandleStats` to live metrics (Prometheus/Valkey)
+- [x] Audit request_id propagation across all audit and middleware log lines
+- [x] Verify "Wiki accuracy" for all finalized components

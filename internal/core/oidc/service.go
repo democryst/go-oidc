@@ -249,7 +249,7 @@ func (s *OIDCService) Discovery() *interfaces.DiscoveryDocument {
 }
 
 func (s *OIDCService) getRequestID(ctx context.Context) string {
-	if val, ok := ctx.Value("request_id").(string); ok {
+	if val, ok := ctx.Value(interfaces.RequestIDKey).(string); ok {
 		return val
 	}
 	return ""

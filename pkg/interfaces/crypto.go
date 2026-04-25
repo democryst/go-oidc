@@ -1,8 +1,13 @@
-// Package interfaces defines the contracts that decouple core logic from
-// concrete crypto and KMS implementations.
 package interfaces
+ 
+ import "context"
 
-import "context"
+// ContextKey is a custom type for context keys to avoid collisions.
+type ContextKey string
+
+const (
+	RequestIDKey ContextKey = "request_id"
+)
 
 // TokenClaims holds the standard OIDC/OAuth2 JWT claims.
 type TokenClaims struct {
@@ -17,12 +22,16 @@ type TokenClaims struct {
 	Extra     map[string]any    // additional claims (profile, email, etc.)
 }
 
-// JSONWebKey is a minimal representation of a public key for the JWKS endpoint.
+// JSONWebKey is a representation of a public key for the JWKS endpoint.
+// It includes standard fields (kid, kty, use) and PQC-specific extensions.
 type JSONWebKey struct {
-	KeyID     string // "kid" — stable identifier for key rotation
-	Algorithm string // e.g. "EdDSA", "Dilithium3"
-	Use       string // "sig"
-	PublicKey any    // crypto.PublicKey or circl equivalent
+	KeyID     string         `json:"kid"`
+	KeyType   string         `json:"kty"`      // e.g. "OKP" or "ML-DSA"
+	Algorithm string         `json:"alg"`      // e.g. "EdDSA" or "ML-DSA-65"
+	Use       string         `json:"use"`      // "sig"
+	Crv       string         `json:"crv,omitempty"` // For OKP (Ed25519)
+	X         string         `json:"x,omitempty"`   // Base64Url public key (for OKP/ML-DSA)
+	Params    map[string]any `json:"params,omitempty"` // Extra parameters
 }
 
 // Signer defines the contract for issuing dual-signed (Option A Nested JWS) tokens.

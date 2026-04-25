@@ -6,7 +6,7 @@ import (
 )
 
 type HealthHandler struct {
-	// Add health-related dependencies here (e.g. DB pool, Redis client)
+	// Add health-related dependencies here (e.g. DB pool, Valkey client)
 }
 
 func NewHealthHandler() *HealthHandler {
@@ -22,11 +22,11 @@ func (h *HealthHandler) Liveness(w http.ResponseWriter, r *http.Request) {
 
 func (h *HealthHandler) Readiness(w http.ResponseWriter, r *http.Request) {
 	// Readiness: indicates if the app is ready to serve traffic.
-	// Check DB and Redis availability here.
+	// Check DB and Valkey availability here.
 	status := map[string]string{
 		"status": "UP",
 		"db":     "READY",
-		"redis":  "READY",
+		"valkey": "READY",
 	}
 
 	w.Header().Set("Content-Type", "application/json")

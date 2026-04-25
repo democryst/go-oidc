@@ -17,7 +17,7 @@ type Config struct {
 	OIDC     OIDCConfig
 	OpenBao  OpenBaoConfig
 	Database DatabaseConfig
-	Redis    RedisConfig
+	Valkey   ValkeyConfig
 }
 
 // ServerConfig controls the HTTP server behaviour.
@@ -44,8 +44,8 @@ type DatabaseConfig struct {
 	MaxConns int
 }
 
-// RedisConfig holds connection settings for Redis.
-type RedisConfig struct {
+// ValkeyConfig holds connection settings for Valkey.
+type ValkeyConfig struct {
 	Address  string
 	Password string
 	DB       int
@@ -119,9 +119,9 @@ func Load() (*Config, error) {
 			RefreshTokenTTL: parseDuration("OIDC_REFRESH_TOKEN_TTL", 24*time.Hour, &errs),
 			AuthCodeTTL:     parseDuration("OIDC_AUTH_CODE_TTL", 5*time.Minute, &errs),
 		},
-		Redis: RedisConfig{
-			Address:  getEnvDefault("REDIS_ADDR", "localhost:6379"),
-			Password: getEnvDefault("REDIS_PASSWORD", ""),
+		Valkey: ValkeyConfig{
+			Address:  getEnvDefault("VALKEY_ADDR", "localhost:6379"),
+			Password: getEnvDefault("VALKEY_PASSWORD", ""),
 			DB:       0,
 		},
 	}

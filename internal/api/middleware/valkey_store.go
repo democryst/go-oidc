@@ -7,14 +7,14 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// RedisStore implements RateLimitStore using Redis.
-type RedisStore struct {
+// ValkeyStore implements RateLimitStore using Valkey (wire-compatible with Redis).
+type ValkeyStore struct {
 	client *redis.Client
 }
 
-// NewRedisStore creates a new RedisStore instance.
-func NewRedisStore(client *redis.Client) *RedisStore {
-	return &RedisStore{client: client}
+// NewValkeyStore creates a new ValkeyStore instance.
+func NewValkeyStore(client *redis.Client) *ValkeyStore {
+	return &ValkeyStore{client: client}
 }
 
 // script is the LUA script for atomic increment with expiration.
@@ -30,15 +30,15 @@ end
 return current_count
 `
 
-// Check implements the rate limiting logic using Redis LUA script.
-func (s *RedisStore) Check(key string, limit int, window time.Duration) bool {
+// Check implements the rate limiting logic using Valkey LUA script.
+func (s *ValkeyStore) Check(key string, limit int, window time.Duration) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
 	// Execute the script
 	val, err := s.client.Eval(ctx, rateLimitScript, []string{key}, limit, int(window.Seconds())).Result()
 	if err != nil {
-		// On redis error, we might want to default to allow (fail-open) 
+		// On valkey error, we might want to default to allow (fail-open) 
 		// or block (fail-closed) depending on business requirements.
 		// For high-security OIDC, we fail-closed if the database is down.
 		return false

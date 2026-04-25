@@ -15,11 +15,11 @@ spec:
       port: 53
     - protocol: TCP
       port: 53
-  # Allow traffic to Redis
+  # Allow traffic to Valkey
   - to:
     - podSelector:
         matchLabels:
-          app: redis
+          app: valkey
     ports:
     - protocol: TCP
       port: 6379
