@@ -1,0 +1,5 @@
+raw_feature_request: |
+  Create a Golang OIDC provider (server).
+  It should issue JWT tokens, handle the standard OAuth2 /authorize and /token endpoints.
+  Please use PostgreSQL for the database to store users and clients.
+priority: P1
