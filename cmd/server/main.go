@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/openbao/openbao/api/v2"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/democryst/go-oidc/internal/api/handlers"
@@ -138,8 +139,11 @@ func main() {
 		http.NotFound(w, r)
 	})
 
-	// Apply Logger to all
-	handler := middleware.Logger(mux)
+	// Prometheus Metrics
+	mux.Handle("/metrics", promhttp.Handler())
+
+	// Apply Metrics/Logger to all
+	handler := middleware.Metrics(middleware.Logger(mux))
 
 	// 7. Server
 	srv := &http.Server{

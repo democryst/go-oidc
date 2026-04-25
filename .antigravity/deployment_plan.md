@@ -49,7 +49,7 @@ Traditional CPU-only HPA is insufficient for this workload.
 
 ## 📝 Success Criteria Checklist
 - [ ] NLB configured for L4 pass-through.
-- [ ] PgBouncer deployed in `transaction` mode.
-- [ ] Prometheus metrics exported for `oidc_requests_total` and `signing_duration_seconds`.
-- [ ] HPA configured with custom metrics API.
+- [x] PgBouncer deployed in `transaction` mode (`k8s/pgbouncer.yaml`).
+- [x] Prometheus metrics exported for `oidc_requests_total` and `signing_duration_seconds` (`internal/api/middleware/metrics.go`).
+- [x] HPA configured with custom metrics API (`k8s/hpa.yaml`).
 - [ ] OpenBao HA cluster initialized and unsealed.
