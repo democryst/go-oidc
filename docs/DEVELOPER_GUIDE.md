@@ -5,7 +5,7 @@ This guide provides the necessary steps to develop, test, and deploy the Post-Qu
 ## 1. Local Development Setup
 
 ### Dependencies
-- **Go 1.23+**
+- **Go 1.26.2+**
 - **Docker** (Required for database and OpenBao adapters)
 - **Redis 7+** or **Valkey 8+** (Required for rate limiting)
 

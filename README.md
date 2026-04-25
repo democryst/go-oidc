@@ -22,7 +22,7 @@ A high-performance, production-grade OpenID Connect Identity Provider implemente
 
 ### Prerequisites
 - **Docker** and **Docker Compose**
-- **Go 1.23+** (for local development)
+- **Go 1.26.2+** (for local development)
 
 ### One-Command Start
 Run the full stack (Provider, DB, Redis, OpenBao) locally:
