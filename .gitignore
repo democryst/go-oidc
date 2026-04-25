@@ -3,4 +3,3 @@ oidc-server
 *.test
 bin/
 vendor/
-.antigravity/
