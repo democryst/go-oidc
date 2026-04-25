@@ -101,11 +101,35 @@ func main() {
 	h := handlers.NewOIDCHandler(svc)
 	rl := middleware.RateLimit(rlStore, cfg.Server.RateLimit, time.Minute)
 
+	// --- Admin Dashboard (Phase 3) ---
+	adminHandler := handlers.NewAdminHandler(svc)
+	adminMux := http.NewServeMux()
+	adminMux.HandleFunc("/admin/stats", adminHandler.HandleStats)
+	adminMux.HandleFunc("/admin/clients", adminHandler.HandleClients)
+	adminMux.HandleFunc("/admin/audit", adminHandler.HandleAuditLogs)
+
+	// Protected Admin API
+	protectedAdmin := middleware.AdminAuth(adminMux)
+
 	mux := http.NewServeMux()
+	// Public OIDC Endpoints
 	mux.Handle("/authorize", rl(http.HandlerFunc(h.HandleAuthorize)))
 	mux.Handle("/token", rl(http.HandlerFunc(h.HandleToken)))
 	mux.HandleFunc("/.well-known/openid-configuration", h.HandleDiscovery)
 	mux.HandleFunc("/.well-known/jwks.json", h.HandleJWKS)
+
+	// Admin API
+	mux.Handle("/admin/", protectedAdmin)
+
+	// Static UI
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" || r.URL.Path == "/admin" || r.URL.Path == "/admin/" {
+			http.ServeFile(w, r, "web/admin/index.html")
+			return
+		}
+		http.NotFound(w, r)
+	})
 
 	// Apply Logger to all
 	handler := middleware.Logger(mux)

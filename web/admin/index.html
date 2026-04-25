@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard | PQC-OIDC</title>
+  <link rel="stylesheet" href="/static/css/admin.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="dashboard">
+    <aside>
+      <div class="logo">PQC-OIDC</div>
+      <nav>
+        <ul>
+          <li><a href="#" class="active">Overview</a></li>
+          <li><a href="#">Clients</a></li>
+          <li><a href="#">PQC Keys</a></li>
+          <li><a href="#">Audit Logs</a></li>
+          <li><a href="#">Performance</a></li>
+          <li><a href="#">Configuration</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main>
+      <header>
+        <h1>System Overview</h1>
+        <div class="user-info">admin@pqc-provider.local</div>
+      </header>
+
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Throughput</div>
+          <div class="stat-value" id="stat-tps">--</div>
+          <div class="stat-change positive">TPS (Global)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">P99 Latency</div>
+          <div class="stat-value" id="stat-latency">--</div>
+          <div class="stat-change">Dual-Sign Overhead</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Success Rate</div>
+          <div class="stat-value" id="stat-success">--</div>
+          <div class="stat-change positive">0.02% error rate</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active Sessions</div>
+          <div class="stat-value" id="stat-sessions">--</div>
+          <div class="stat-change">Live Connections</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Active OIDC Clients</h2>
+          <button class="badge pqc">Register New Client</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Client Name</th>
+              <th>Client ID</th>
+              <th>Status</th>
+              <th>Signature Protocol</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="client-list">
+            <tr>
+              <td>Mobile App (Prod)</td>
+              <td><code>f47ac10b-58cc-4372-a567-0e02b2c3d479</code></td>
+              <td><span class="badge" style="color: var(--success-color)">ACTIVE</span></td>
+              <td><span class="badge pqc">DILITHIUM3+ED25519</span></td>
+              <td><a href="#">Manage</a></td>
+            </tr>
+            <tr>
+              <td>Internal Admin Hub</td>
+              <td><code>550e8400-e29b-41d4-a716-446655440000</code></td>
+              <td><span class="badge" style="color: var(--success-color)">ACTIVE</span></td>
+              <td><span class="badge pqc">DILITHIUM3+ED25519</span></td>
+              <td><a href="#">Manage</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    async function updateStats() {
+      try {
+        const response = await fetch('/admin/stats', {
+          headers: {
+            'Authorization': 'Bearer ' + (localStorage.getItem('admin_token') || 'dev-root-token')
+          }
+        });
+        if (response.ok) {
+          const stats = await response.json();
+          document.getElementById('stat-tps').textContent = stats.tps.toLocaleString();
+          document.getElementById('stat-latency').textContent = stats.p99_latency;
+          document.getElementById('stat-success').textContent = stats.success_rate + '%';
+          document.getElementById('stat-sessions').textContent = stats.active_sessions.toLocaleString();
+        }
+      } catch (err) {
+        console.error('Failed to fetch stats:', err);
+      }
+    }
+
+    setInterval(updateStats, 2000);
+    updateStats();
+  </script>
+</body>
+</html>
