@@ -2,14 +2,15 @@
 
 > **Read this file at the start of every session.**
 > This is a general-purpose SDLC workflow. It applies to any language, any stack.
-> Local Ollama agents act as specialist advisors — Antigravity orchestrates and decides.
+> Local Ollama agents act as both specialist advisors AND local executors. 
+> Antigravity orchestrates, plans, and explicitly delegates execution to the relevant local model.
 
 ---
 
-## Local Advisory Agents
+## Local Advisory & Executor Agents
 
-Antigravity consults these agents via Ollama (`http://localhost:11434`).
-They give **advice**. Antigravity **decides and acts**.
+Antigravity consults and controls these agents via Ollama (`http://localhost:11434`).
+For architecture and security, they give **advice**. For implementation and fixing, Antigravity **delegates execution** to them.
 
 | Agent | Model | Specialty |
 |-------|-------|-----------|
@@ -20,7 +21,7 @@ They give **advice**. Antigravity **decides and acts**.
 | 🛡️ Sec | `gemma-sec:latest` | Security, threat modelling, auth, secrets, compliance |
 | 🧠 Base | `gemma-base:latest` | General reasoning, cross-cutting questions, fallback |
 
-**Consult format — send this to every agent call:**
+**Consult format (Advisory) — send this to Arch/Sec/UI:**
 ```
 ROLE: [agent specialty]
 STACK: [language + framework + infra]
@@ -35,6 +36,17 @@ curl -s http://localhost:11434/api/generate \
   -d '{"model":"<model>","prompt":"<prompt>","stream":false}' \
   | jq -r '.response'
 ```
+
+**Execute format (Delegation) — send this to Dev/Fix:**
+```
+ROLE: [agent specialty, e.g. Go Developer Executor]
+STACK: [language + framework + infra]
+TASK: [Implementation task description and acceptance criteria]
+CONTEXT: [Current codebase context, files involved]
+INSTRUCTION: [Exactly what code should be written. Enforce TDD if applicable. Output raw code blocks.]
+```
+
+**Ollama call:**
 
 ---
 
@@ -84,10 +96,10 @@ curl -s http://localhost:11434/api/generate \
 ### Phase 2 — Implementation
 **Entry:** Approved implementation plan.
 
-**Antigravity actions:**
-- Execute the plan **step by step**. No deviation without informing the user.
-- Follow **TDD**: write the failing test first, then write code to make it pass, then refactor.
-- Keep changes **surgical** — only touch what the task requires.
+**Antigravity actions (Delegation):**
+- Antigravity explicitly delegates the implementation step to the **Dev** executor agent via Ollama.
+- Antigravity provides the Dev agent with the exact plan step, the relevant context, and strict TDD constraints (if applicable).
+- Once the Dev agent returns the code, Antigravity reviews and applies the surgical change exactly as provided.
 - After each logical unit of work → run the test suite. Must stay green.
 - If something unexpected happens → **stop, report, ask** — do not improvise.
 
