@@ -73,7 +73,7 @@ INSTRUCTION: [Exactly what code should be written. Enforce TDD if applicable. Ou
 **Entry:** Requirements are understood and confirmed.
 
 **Antigravity actions:**
-- Produce an `implementation_plan.md` covering:
+- Produce an implementation plan in the project directory at `.antigravity/implementation_plan.md` covering:
   - Problem statement
   - Proposed solution and alternatives considered
   - Components impacted
@@ -160,7 +160,7 @@ INSTRUCTION: [Exactly what code should be written. Enforce TDD if applicable. Ou
 - Verify the build is clean (`build` command for the project's stack).
 - Confirm no environment-specific config is hardcoded.
 - Confirm migrations (if any) are backward-compatible or have a rollback path.
-- Produce a `walkthrough.md` covering: what was built, how it was tested, how to verify it.
+- Produce a walkthrough in the project directory at `.antigravity/walkthrough.md` covering: what was built, how it was tested, how to verify it.
 
 **Agent consultations:**
 - **Arch** — Is the deployment strategy consistent with the system design?
