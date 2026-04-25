@@ -74,3 +74,11 @@
 - [x] Connect `HandleStats` to live metrics (Prometheus/Valkey)
 - [x] Audit request_id propagation across all audit and middleware log lines
 - [x] Verify "Wiki accuracy" for all finalized components
+
+# Phase 8: Native Valkey Client Migration [COMPLETED]
+- [x] Create P7 Requirements for native Valkey client
+- [x] Integrate `github.com/valkey-io/valkey-go` into `go.mod`
+- [x] Refactor `ValkeyStore` to use native client and `NewLuaScript`
+- [x] Update `main.go` for `valkey.NewClient` initialization
+- [x] Verify rate limiting performance with native client
+- [x] Remove `go-redis` dependency

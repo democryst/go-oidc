@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/openbao/openbao/api/v2"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/redis/go-redis/v9"
+	"github.com/valkey-io/valkey-go"
 
 	"github.com/democryst/go-oidc/internal/api/handlers"
 	"github.com/democryst/go-oidc/internal/api/middleware"
@@ -82,21 +82,20 @@ func main() {
 	// 6. Routing & Middleware
 	var rlStore middleware.RateLimitStore
 	if cfg.Valkey.Address != "" {
-		rdb := redis.NewClient(&redis.Options{
-			Addr:     cfg.Valkey.Address,
-			Password: cfg.Valkey.Password,
-			DB:       cfg.Valkey.DB,
+		vClient, err := valkey.NewClient(valkey.ClientOption{
+			InitAddress: []string{cfg.Valkey.Address},
+			Password:    cfg.Valkey.Password,
+			SelectDB:    cfg.Valkey.DB,
 		})
-		// Check connection
-		rCtx, rCancel := context.WithTimeout(context.Background(), 2*time.Second)
-		if err := rdb.Ping(rCtx).Err(); err != nil {
+		if err != nil {
 			log.Printf("Warning: Valkey connect failed (%v), falling back to MemoryStore", err)
 			rlStore = middleware.NewMemoryStore()
 		} else {
 			log.Printf("Connected to Valkey at %s for distributed rate limiting", cfg.Valkey.Address)
-			rlStore = middleware.NewValkeyStore(rdb)
+			rlStore = middleware.NewValkeyStore(vClient)
+			// Ensure cleanup on shutdown
+			defer vClient.Close()
 		}
-		rCancel()
 	} else {
 		rlStore = middleware.NewMemoryStore()
 	}
